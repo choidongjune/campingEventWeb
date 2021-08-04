@@ -5,14 +5,20 @@ import axios from 'axios';
 import DaumPostcode from 'react-daum-postcode';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { ko } from 'date-fns/esm/locale';
 const ApplicantPage = () => {
   const [picFlag, setPicFlag] = useState(false);
   const [videoFlag, setVideoFlag] = useState(false);
-
   const [userInfo, setUserInfo] = useState({
     name: '',
     teamName: '',
     cellphone: '',
+    title: '',
+    filmLocation: '',
+    date: new Date(),
     address: {
       zonecode: '',
       roadAddress: '',
@@ -89,64 +95,86 @@ const ApplicantPage = () => {
       console.log('필드가 비어있음');
       return;
     }
+    // 우선 유저정보를 디비에 저장한다. 
+    // 유저 정보가 중복된다면 함수를 종료한다. 
+    let isUser = true;
+    // axios.get('', userInfo).then(response => {
+    //   console.log(response);
+    //   if (response.status == 200) {
+    //     alert('응모하셨습니다!');
+    //   } else {
+    //     isUser = false;
+    //     alert('유저정보가 이미 있습니다.');
+    //   }
+    // }).catch(e => {
+    //   console.log(e);
+    // });
 
-    const formData = new FormData();
 
-    if (picFlag) {
-      if (setPic['pic1']) {
-        formData.append(
-          "file",
-          selectPic.pic1
-        );
-      }
-      if (setPic['pic2']) {
-        formData.append(
-          "file",
-          selectPic.pic2
-        );
-      }
-      if (setPic['pic3']) {
-        formData.append(
-          "file",
-          selectPic.pic3
-        );
-      }
-    }
-    if (videoFlag) {
-      formData.append(
-        "file",
-        selectVideo
-      )
-    }
+    if (isUser) {
+      const formData = new FormData();
 
-    const config = {
-      headers: {
-        "content-type": "multipart/form-data"
-      },
-      onUploadProgress: progressEvent => {
-        let cureentProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(cureentProgress);
-        setProgress(cureentProgress);
+      if (picFlag) {
+        if (selectPic.pic1 != null) {
+          formData.append(
+            "files",
+            selectPic.pic1
+          );
+        }
+        if (selectPic.pic2 != null) {
+          formData.append(
+            "files",
+            selectPic.pic2
+          );
+        }
+        if (selectPic.pic3 != null) {
+          formData.append(
+            "files",
+            selectPic.pic3
+          );
+        }
       }
-    };
-    setLoading(true);
-    axios.post(`http://175.119.215.48:8080/api/smt/v1/uploadCamp`, formData, config).then((response) => {
-      console.log(response);
+      if (videoFlag) {
+        formData.append(
+          "files",
+          selectVideo
+        )
+      }
+      const config = {
+        headers: {
+          "content-type": "multipart/form-data"
+        },
+        onUploadProgress: progressEvent => {
+          let cureentProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(cureentProgress);
+          setProgress(cureentProgress);
+        }
+      };
       setLoading(true);
-      if (response.status == 200) {
-        alert('응모하셨습니다!');
+      const fileForMulti = '/dalimi/uploadFiles';
+      const real_url = '/api/smt/v1/uploadCamp';
+      axios.post('http://175.119.215.48:8080'+fileForMulti, formData, config).then((response) => {
+        console.log(response);
+        setLoading(true);
+        if (response.status == 200) {
+          setLoading(false);
+          alert('응모완료!');
+        } else {
+          setLoading(false);
+          alert('파일업로드실패!');
+        }
+      }).catch(e => {
+        console.log(e);
+        alert('서버오류');
         setLoading(false);
-      } else {
-        alert('실패');
-        setLoading(false);
-      }
-    }).catch(e => {
-      console.log(e);
-      setLoading(false);
-    });
+      });
+    } else {
+      return;
+    }
+
   }
   return (
-    <Container>
+    <Container className="mb-5">
       <h3 className="text-center mt-3 mb-3">참가 신청하기</h3>
       <Container style={{
         border: "2px solid green",
@@ -218,6 +246,40 @@ const ApplicantPage = () => {
                       setUserInfo({ ...userInfo, teamName: teamName });
                     }} />
                 </Form.Group>
+                <Form.Group as={Col}>
+                  <Form.Label>작품명</Form.Label>
+                  <Form.Control type="text" placeholder="작품명"
+                    onChange={(e) => {
+                      let title = e.target.value;
+                      setUserInfo({ ...userInfo, title: title });
+                    }} />
+                </Form.Group>
+              </Row>
+              <Row className="mb-3">
+                <Form.Group as={Col}>
+                  <Form.Label>촬영장소</Form.Label>
+                  <Form.Control type="text" placeholder="대전광역시 유성구 **동"
+                    onChange={(e) => {
+                      let filmLocation = e.target.value;
+                      setUserInfo({ ...userInfo,filmLocation: filmLocation });
+                    }} />
+                </Form.Group>
+                <Form.Group as={Col}>
+                  <Form.Label style={{display: "block"}}>날짜</Form.Label>
+                  {/* <Form.Control type="text" placeholder="작품명"
+                    onChange={(e) => {
+                      let title = e.target.value;
+                      setUserInfo({ ...userInfo, title: title });
+                    }} /> */}
+                    <DatePicker
+                      className="form-control"
+                      selected={userInfo.date}
+                      onChange={date => setUserInfo({...userInfo, date: date})}
+                      startDate={userInfo.date}
+                      locale={ko}
+                      dateFormat="yyyy년 MM월 dd일"
+                    />
+                </Form.Group>
               </Row>
               <Form.Group className="mb-3">
                 <Form.Label>주소</Form.Label>
@@ -251,23 +313,17 @@ const ApplicantPage = () => {
                   }
                   className="mb-3"
                 />
-                <input
+                <Form.Control
                   type="text"
-                  className="form-in-class"
                   placeHolder="상세주소"
                   onChange={(e) => {
                     let details = e.target.value;
                     setUserInfo({ ...userInfo, address: { ...userInfo.address, details: details } });
                   }}
+
                 />
 
               </Form.Group>
-              {/* <Form.Group controlId="formFile" className="mb-3">
-                <Form.Label>파일을 선택해주세요</Form.Label>
-                <Form.Control type="file" onChange={(e) => {
-                  setFile(e.target.files[0]);
-                }} />
-              </Form.Group> */}
             </div>
           }
           {picFlag && <div>
@@ -275,7 +331,8 @@ const ApplicantPage = () => {
               <Form.Label>이미지를 선택해주세요 (최대 3장)</Form.Label>
               <Form.Control type="file" onChange={(e) => {
                 setPic({ ...selectPic, pic1: e.target.files[0] });
-              }} />
+              }}
+              />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Control type="file" onChange={(e) => {
@@ -297,7 +354,11 @@ const ApplicantPage = () => {
             </Form.Group>
           </div>}
           {
-            (picFlag || videoFlag) && <input type="submit" value="응모하기" className="mb-3"></input>
+            (picFlag || videoFlag) && <Button
+              type="submit"
+              className="border bg-custom-red mb-4">
+              응모하기
+            </Button>
           }
           <Modal
             show={popupShow}
@@ -315,6 +376,7 @@ const ApplicantPage = () => {
             onHide={() => setLoading(false)}
             size="lg"
             centered
+            backdrop="static"
           >
             <Modal.Header>로딩중입니다. 잠시기다려주세요.</Modal.Header>
             <Modal.Body>

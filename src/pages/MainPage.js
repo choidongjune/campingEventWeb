@@ -21,7 +21,7 @@ const MainPage = () => {
         transform: "translate(-50%,-50%)",
         position: "absolute",
         }}
-        className="col-lg-3 col-10"><p className="h1">대덕구 어울림 가족캠프</p></div>
+        className="col-lg-3 col-10"><p className="h1">가족캠프, 위드 코로나19</p><p>A Family capming with COVID-19</p></div>
     </div>
   );
 }
